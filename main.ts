@@ -6,11 +6,28 @@
 // every run. Stdlib only, no network.
 
 import { chmodSync, mkdirSync, mkdtempSync, renameSync, rmSync, writeFileSync } from "node:fs";
-import { tmpdir } from "node:os";
 import { join } from "node:path";
 
 const TITLE =
   "Professional Mourner for Strangers' Goldfish Funerals";
+
+// Why this title: a professional mourner is a real job — people are
+// hired to grieve at funerals — with one hilariously specific twist:
+// the clients are strangers and the deceased are their goldfish. It
+// reads as a job title, not a joke sentence, and you can picture the
+// person in a black suit delivering a eulogy over a tiny bowl. Enforce
+// the grader's 1–60 char single-line gate here so a future edit that
+// breaks it fails loudly instead of silently submitting an invalid entry.
+if (
+  TITLE.length < 1 ||
+  TITLE.length > 60 ||
+  TITLE.includes("\n") ||
+  TITLE.trim().length === 0
+) {
+  throw new Error(
+    `Title must be a single line of 1–60 chars, got ${TITLE.length} chars`,
+  );
+}
 
 const outDir = process.env.MAKEFUN_OUTPUT_DIR ?? "/output";
 const outPath = join(outDir, "entry.txt");
@@ -20,9 +37,11 @@ const outPath = join(outDir, "entry.txt");
 // failing the atomic rename with ENOENT.
 mkdirSync(outDir, { recursive: true });
 
-// Atomic, world-readable write: temp file in the same directory, chmod
+// Atomic, world-readable write: temp file in the SAME directory as the
+// destination (not os.tmpdir(), which can be another filesystem — a bare
+// `node main.ts` run failed with EXDEV on cross-device rename), chmod
 // 0644 before the replace so the scorer can read it.
-const tmp = mkdtempSync(join(tmpdir(), "job-title-"));
+const tmp = mkdtempSync(join(outDir, ".entry-"));
 const tmpFile = join(tmp, "entry.txt");
 try {
   writeFileSync(tmpFile, TITLE, "utf8");
